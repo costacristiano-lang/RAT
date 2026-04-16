@@ -23,19 +23,6 @@ Examples of fields that must be reviewed include:
 - `nnnnn`
 - `nnnnnn`
 
-In this specific example, the application name used is `PIX`. Any object names, directories, capture names, SQL tuning set names, baseline names, and exported file names that include `PIX` must be adjusted to match the application being analyzed in your environment.
-
-Examples of names that should be reviewed and adapted:
-
-- `CAPTURE_RAT_PIX`
-- `capture_pix`
-- `STS_PIX`
-- `TABLE_STS_PIX`
-- `PIX_baseline`
-- `export_sts_pix.dmp`
-- `/acfs/capture_pix`
-- `/acfs/replay_pix`
-
 ## 4. Prerequisites
 
 - The source and target environments are available.
@@ -48,7 +35,6 @@ Examples of names that should be reviewed and adapted:
 ## 5. Source Environment Information
 
 - **Platform:** ExaCC X10M-2 Gen2
-- **Database:** `p3e10c`
 
 ## 6. Execution Steps
 
@@ -57,14 +43,14 @@ Examples of names that should be reviewed and adapted:
 Create the OS directory:
 
 ```bash
-mkdir -p /acfs/capture_pix
+mkdir -p /acfs/capture_YourApp
 ```
 
 Create the Oracle directory object:
 
 ```sql
-CREATE OR REPLACE DIRECTORY capture_pix AS '/acfs/capture_pix';
-GRANT ALL ON DIRECTORY capture_pix TO public;
+CREATE OR REPLACE DIRECTORY capture_YourApp AS '/acfs/capture_YourApp';
+GRANT ALL ON DIRECTORY capture_YourApp TO public;
 ```
 
 ### 6.2 Create Capture Filters (If Required)
@@ -119,8 +105,8 @@ sqlplus / as sysdba
 ```sql
 BEGIN
    DBMS_WORKLOAD_CAPTURE.START_CAPTURE (
-      name           => 'CAPTURE_RAT_PIX',
-      dir            => 'CAPTURE_PIX',
+      name           => 'CAPTURE_RAT_YourApp',
+      dir            => 'CAPTURE_YourApp',
       default_action => 'INCLUDE'
    );
 END;
@@ -303,7 +289,6 @@ Transfer the exported `.dmp` file to the target environment.
 ## 7. Target Environment Preparation
 
 - **Platform:** ExaCC X10M-2
-- **VM Cluster:** `exacc0305`
 
 ### 7.1 Create the Required Directories
 
@@ -335,13 +320,13 @@ sqlplus / as sysdba
 
 ```sql
 BEGIN
-  DBMS_SQLTUNE.UNPACK_STGTAB_SQLSET(
-     sqlset_name          => 'STS_YourApp',
-     sqlset_owner         => 'SYS',
-     replace              => TRUE,
-     staging_table_name   => 'YOUR_TABLE',
-     staging_schema_owner => 'YOUR_SCHEMA'
-  );
+   DBMS_SQLTUNE.UNPACK_STGTAB_SQLSET(
+      sqlset_name          => 'STS_YourApp',
+      sqlset_owner         => 'SYS',
+      replace              => TRUE,
+      staging_table_name   => 'YOUR_TABLE',
+      staging_schema_owner => 'YOUR_SCHEMA'
+   );
 END;
 /
 ```
@@ -363,10 +348,3 @@ FROM dba_sqlset_statements
 WHERE sqlset_name = 'STS_YourApp'
 ORDER BY 3 DESC;
 ```
-
-## 9. Notes
-
-- Replace all placeholders such as `nnnnn`, `nnnnnn`, usernames, passwords, hostnames, and application-specific names before execution.
-- In this example, `PIX` is used only as a reference application name.
-- For other applications, all names and identifiers should be updated consistently throughout the procedure.
-- It is recommended to adopt a standard naming convention aligned with the application or project being tested.
