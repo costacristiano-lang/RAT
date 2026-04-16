@@ -1,4 +1,4 @@
-# RAT Capture 
+# RAT Capture and Replay Procedure
 
 ## 1. Objective
 
