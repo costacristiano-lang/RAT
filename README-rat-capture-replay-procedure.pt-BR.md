@@ -1,16 +1,16 @@
-# RAT Capture and Replay Procedure
+# Procedimento de Captura e Replay com RAT
 
-[English](./README-rat-capture-replay-procedure.md) | [Português (Brasil)](./README-rat-capture-replay-procedure.pt-BR.md)
+[English](./README-rat-capture-replay-procedure.md) | **Português (Brasil)**
 
-## 1. Objective
+## 1. Objetivo
 
 This document describes the technical procedure required to execute Oracle Real Application Testing (RAT) capture and replay activities, including workload capture, AWR export, SQL Tuning Set (STS) preparation, replay initialization, replay execution, and validation.
 
-## 2. Scope
+## 2. Escopo
 
 This procedure applies to both the source environment used for workload capture and the target environment used for workload replay.
 
-## 3. Important Naming Note
+## 3. Observação importante sobre nomes
 
 All fields highlighted in red must be reviewed and adapted to the environment where the RAT procedure will be executed.
 
@@ -27,7 +27,7 @@ Examples of fields that must be reviewed include:
 - `nnnnn`
 - `RECO_NAME`
 
-## 4. General Prerequisites
+## 4. Pré-requisitos gerais
 
 - The source and target environments must be available.
 - Oracle RAT must be properly licensed and configured.
@@ -36,14 +36,14 @@ Examples of fields that must be reviewed include:
 - Connectivity between source and target servers must be available for file transfer.
 - The users or sessions to be monitored must be clearly identified.
 
-## 5. RAT Capture Procedure
+## 5. Procedimento de captura RAT
 
-### 5.1 Source Environment Information
+### 5.1 Informações do ambiente de origem
 
 - **Platform:** ExaCC X10M-2 Gen2
 - **Database:** `Primary Database`
 
-### 5.2 Create the Directory for Capture Files
+### 5.2 Criar o diretório dos arquivos de captura
 
 Create the OS directory:
 
@@ -58,7 +58,7 @@ CREATE OR REPLACE DIRECTORY capture_YourApp AS '/acfs/capture_YourApp';
 GRANT ALL ON DIRECTORY capture_YourApp TO public;
 ```
 
-### 5.3 Create Capture Filters (If Required)
+### 5.3 Criar filtros de captura (se necessário)
 
 If it is necessary to restrict the capture to specific users, create filters such as:
 
@@ -82,13 +82,13 @@ END;
 /
 ```
 
-### 5.4 Create an AWR Snapshot Before Starting the Capture
+### 5.4 Criar snapshot AWR antes da captura
 
 ```sql
 EXEC DBMS_WORKLOAD_REPOSITORY.CREATE_SNAPSHOT();
 ```
 
-### 5.5 Stop Redo Apply on the Standby Database
+### 5.5 Parar o apply de redo no standby
 
 On standby server `exacc0305`:
 
@@ -97,7 +97,7 @@ sqlplus / as sysdba
 ALTER DATABASE RECOVER MANAGED STANDBY DATABASE CANCEL;
 ```
 
-### 5.6 Start the Capture on the Source Database
+### 5.6 Iniciar a captura no banco de origem
 
 On the source database:
 
@@ -114,7 +114,7 @@ END;
 /
 ```
 
-### 5.7 Monitor the Capture
+### 5.7 Monitorar a captura
 
 ```sql
 SET LINESIZE 300
@@ -131,7 +131,7 @@ SELECT name,
 FROM DBA_WORKLOAD_CAPTURES;
 ```
 
-### 5.8 Finish the Capture
+### 5.8 Finalizar a captura
 
 Allow the capture to run for approximately 2 hours, then finish it:
 
@@ -159,7 +159,7 @@ SELECT name,
 FROM DBA_WORKLOAD_CAPTURES;
 ```
 
-### 5.9 Export the AWR Data
+### 5.9 Exportar os dados do AWR
 
 Retrieve the `capture_id`:
 
@@ -178,7 +178,7 @@ END;
 /
 ```
 
-### 5.10 Create the SQL Tuning Set for SPA
+### 5.10 Criar o SQL Tuning Set para SPA
 
 Create the staging table:
 
@@ -213,7 +213,7 @@ FROM dba_sqlset_statements
 WHERE sqlset_name = 'STS_YourApp';
 ```
 
-### 5.11 Identify the AWR Snapshot Range
+### 5.11 Identificar o intervalo de snapshots AWR
 
 ```sql
 SET LINES 200
@@ -242,7 +242,7 @@ EXECUTE DBMS_WORKLOAD_REPOSITORY.CREATE_BASELINE(
 );
 ```
 
-### 5.12 Load the Workload into the SQL Tuning Set
+### 5.12 Carregar o workload no SQL Tuning Set
 
 ```sql
 DECLARE
@@ -264,7 +264,7 @@ END;
 /
 ```
 
-### 5.13 Pack the SQL Tuning Set
+### 5.13 Empacotar o SQL Tuning Set
 
 ```sql
 BEGIN
@@ -278,7 +278,7 @@ END;
 /
 ```
 
-### 5.14 Export the STS Table
+### 5.14 Exportar a tabela STS
 
 ```bash
 exp system/pwd file=/acfs/dump/export_sts_YOUR_APP.dmp tables=YOUR_TABLE
@@ -286,7 +286,7 @@ exp system/pwd file=/acfs/dump/export_sts_YOUR_APP.dmp tables=YOUR_TABLE
 
 Transfer the exported `.dmp` file to the target environment.
 
-### 5.15 Prepare the Target Environment for Import
+### 5.15 Preparar o destino para importação
 
 - **Platform:** ExaCC X10M-2
 
@@ -308,7 +308,7 @@ cd /acfs/replay_YourApp
 scp oracle@exacc01db01:/acfs/capture_YourApp .
 ```
 
-### 5.16 Unpack the SQL Tuning Set
+### 5.16 Desempacotar o SQL Tuning Set
 
 ```sql
 sqlplus / as sysdba
@@ -325,7 +325,7 @@ END;
 /
 ```
 
-### 5.17 Validate the Imported SQL Set
+### 5.17 Validar o SQL Set importado
 
 ```sql
 SELECT SQL_ID, SQL_TEXT
@@ -339,18 +339,18 @@ WHERE sqlset_name = 'STS_YourApp'
 ORDER BY 3 DESC;
 ```
 
-## 6. RAT Replay Procedure
+## 6. Procedimento de replay RAT
 
-### 6.1 Target Environment Information
+### 6.1 Informações do ambiente de destino
 
 - **Server / Cluster:** `Standby`
 - **Database:** `DBNAME`
 
-### 6.2 Verify Standby Synchronization
+### 6.2 Verificar sincronização do standby
 
 Verify that the primary and standby databases are synchronized before starting the replay procedure.
 
-### 6.3 Enable ARCHIVELOG and FLASHBACK
+### 6.3 Habilitar ARCHIVELOG e FLASHBACK
 
 Set the database to `ARCHIVELOG` and enable `FLASHBACK`:
 
@@ -372,14 +372,14 @@ exit;
 srvctl start database -d DBNAME
 ```
 
-### 6.4 Activate the Standby Database as Read/Write
+### 6.4 Ativar o standby como Read/Write
 
 ```sql
 sqlplus / as sysdba
 alter database activate physical standby database;
 ```
 
-### 6.5 Increase SYSTEM and SYSAUX Tablespaces if Required
+### 6.5 Aumentar SYSTEM e SYSAUX se necessário
 
 ```sql
 col file_name for a55
@@ -393,7 +393,7 @@ alter tablespace system add datafile 'SYSTEM_TABLESPACE' size 5g autoextend on n
 alter tablespace sysaux add datafile 'SYSAUX_TABLESPACE' size 5g autoextend on next 1g maxsize 10g;
 ```
 
-### 6.6 Create the Replay Directory
+### 6.6 Criar o diretório de replay
 
 Create the directory object used to process the files generated by RAT:
 
@@ -407,7 +407,7 @@ If necessary, create user filters according to the replay requirements.
 - Review the filter definition used during the capture process.
 - If the replay follows the same workload scope, create the same filters used during capture.
 
-### 6.7 Process the Capture Metadata
+### 6.7 Processar metadados da captura
 
 Execute capture processing. This step generates the metadata required for replay processing:
 
@@ -418,7 +418,7 @@ EXEC DBMS_WORKLOAD_REPLAY.PROCESS_CAPTURE(
 );
 ```
 
-### 6.8 Calibrate the Replay
+### 6.8 Calibrar o replay
 
 Run calibration to verify the number of processes required to execute the captured workload:
 
@@ -428,7 +428,7 @@ wrc system/pwd mode=calibrate replaydir=/acfs/replay_YOUR_APP
 
 Based on the example report, the recommendation is to use at least 3 clients.
 
-### 6.9 Create Restore Points
+### 6.9 Criar restore points
 
 Restore points are critical if the replay must be executed multiple times without rebuilding the environment.
 
@@ -438,7 +438,7 @@ create restore point before_rat_preprocess guarantee flashback database;
 create restore point restore_after_statistics guarantee flashback database;
 ```
 
-### 6.10 Initialize the Replay
+### 6.10 Inicializar o replay
 
 ```sql
 BEGIN
@@ -450,7 +450,7 @@ END;
 /
 ```
 
-### 6.11 Remap Connections for CDB/PDB Environments
+### 6.11 Remapear conexões em CDB/PDB
 
 In CDB environments, remap the replay connections so they point to the target PDB. RAT execution is performed at the CDB level while pointing to the PDB.
 
@@ -479,7 +479,7 @@ select conn_id, schedule_cap_id, capture_conn, replay_conn
 from dba_workload_connection_map;
 ```
 
-### 6.12 Prepare the Replay
+### 6.12 Preparar o replay
 
 ```sql
 BEGIN
@@ -492,7 +492,7 @@ END;
 /
 ```
 
-### 6.13 Validate Database Links and TNS Configuration
+### 6.13 Validar database links e TNS
 
 Terminate or remove all database links if required:
 
@@ -504,13 +504,13 @@ The expected result in the example is `no rows selected`.
 
 Rename the `tnsnames.ora` files on both cluster nodes as required by the replay setup.
 
-### 6.14 Create an Additional Restore Point Before Replay
+### 6.14 Criar restore point adicional antes do replay
 
 ```sql
 create restore point before_rat_replay_2 guarantee flashback database;
 ```
 
-### 6.15 Start the Replay Clients
+### 6.15 Iniciar clientes de replay
 
 Start the replay clients according to the calibration result.
 
@@ -525,7 +525,7 @@ vm02:
 nohup wrc userid=system password=pwd mode=replay replaydir=/acfs/replay_pix DSCN_OFF=true > cliente_rat_3.out &
 ```
 
-### 6.16 Start the Replay
+### 6.16 Iniciar o replay
 
 ```sql
 BEGIN
@@ -534,7 +534,7 @@ END;
 /
 ```
 
-### 6.17 Monitor the Replay
+### 6.17 Monitorar o replay
 
 ```sql
 col name for a30
@@ -553,7 +553,7 @@ select name,
 from dba_workload_replays;
 ```
 
-### 6.18 Generate AWR Information for the Replay
+### 6.18 Gerar informações AWR do replay
 
 ```sql
 set lines 200
@@ -572,7 +572,7 @@ where AWR_END_SNAP is not null
 order by 4;
 ```
 
-## 7. Notes
+## 7. Observações
 
 - Replace all environment-specific values before execution.
 - All hostnames, passwords, service names, restore point names, and directory names must be validated before execution.
