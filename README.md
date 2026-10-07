@@ -10,6 +10,30 @@ This document describes the technical procedure required to execute Oracle Real 
 
 This procedure applies to both the source environment used for workload capture and the target environment used for workload replay.
 
+## Procedure architecture
+
+```mermaid
+flowchart LR
+    SRC[("Source Oracle database")]
+    TGT[("Prepared test database")]
+    subgraph CAPTURE["Workload capture"]
+        CAP["Database Replay capture"]
+        FILES["Capture files<br/>and baseline AWR"]
+        CAP --> FILES
+    end
+    subgraph REPLAY["Workload replay"]
+        PRE["Transfer and process capture"]
+        PREP["Initialize replay<br/>remap connections and prepare"]
+        WRC["Calibrate and start WRC clients"]
+        PRE --> PREP --> WRC
+    end
+    SRC --> CAP
+    FILES --> PRE
+    WRC --> TGT
+    TGT --> REPORT["Replay AWR<br/>performance validation"]
+    FILES -. "Baseline" .-> REPORT
+```
+
 ## 3. Important Naming Note
 
 All fields highlighted in red must be reviewed and adapted to the environment where the RAT procedure will be executed.
